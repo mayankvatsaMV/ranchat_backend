@@ -1,0 +1,40 @@
+# ── Binaries ──────────────────────────────────────────────────────────────────
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+ranchat_backend
+
+# ── Go build cache ────────────────────────────────────────────────────────────
+/tmp/
+/bin/
+/dist/
+
+# ── Air (live reload) ─────────────────────────────────────────────────────────
+tmp/
+
+# ── Environment variables (NEVER commit secrets) ──────────────────────────────
+.env
+.env.*
+!.env.example
+
+# ── IDE / Editor ──────────────────────────────────────────────────────────────
+.idea/
+.vscode/
+*.swp
+*.swo
+*.DS_Store
+Thumbs.db
+
+# ── Go test artifacts ─────────────────────────────────────────────────────────
+*.test
+*.out
+coverage.html
+coverage.txt
+
+# ── Dependency vendor folder (if you ever run go mod vendor) ──────────────────
+vendor/
+
+# ── Logs ──────────────────────────────────────────────────────────────────────
+*.log
