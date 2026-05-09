@@ -8,24 +8,45 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"ranchat_backend/middleware"
+	"ranchat_backend/models"
 	"ranchat_backend/service"
 	"ranchat_backend/utils"
 )
 
 // StartSearch handles POST /api/v1/matches/search
 //
-// Long-polling endpoint:
-//   - If a partner is already waiting → responds 200 immediately with match data.
-//   - If no partner yet → the request HANGS (up to 60s) until a partner arrives.
+// Accepts an optional JSON body with search preferences:
+//
+//	{ "wantGender": "anyone" | "male" | "female" | "other" }
+//
+// Omitting the body or wantGender defaults to "anyone" (match anyone).
+//
+// Long-polling behaviour:
+//   - If a compatible partner is already waiting → responds 200 immediately.
+//   - If no partner yet → the request HANGS (up to 30s) until one arrives.
 //     When User B calls this endpoint, User A's hanging request resolves with 200.
-//   - After 60s with no partner → responds 202 so the client can retry.
+//   - After 30s with no partner → responds 202 so the client can retry.
 func StartSearch(c *gin.Context) {
 	userID := c.GetString(middleware.ContextKeyUserID)
 
-	matchID, partnerID, waitCh := service.EnqueueAndMatch(c.Request.Context(), userID)
+	// Parse optional preferences body — ignore bind errors so clients that
+	// send no body at all still get the default "anyone" behaviour.
+	var req models.StartSearchRequest
+	_ = c.ShouldBindJSON(&req)
 
-	if waitCh == nil {
-		// Instant match — respond immediately
+	// Normalise empty string to "anyone".
+	if req.WantGender == "" {
+		req.WantGender = models.PrefAnyone
+	}
+
+	prefs := models.SearchPreferences{
+		WantGender: req.WantGender,
+	}
+
+	matchID, partnerID, waitCh := service.EnqueueAndMatch(c.Request.Context(), userID, prefs)
+
+	if waitCh == nil && matchID != "" {
+		// Instant match — respond immediately.
 		utils.SendSuccess(c, http.StatusOK, "match found", map[string]string{
 			"matchId":   matchID,
 			"partnerId": partnerID,
@@ -33,21 +54,27 @@ func StartSearch(c *gin.Context) {
 		return
 	}
 
-	// No partner yet — block until one arrives, client disconnects, or 60s timeout
+	if waitCh == nil {
+		// EnqueueAndMatch failed to resolve the user profile — rare error path.
+		utils.SendError(c, http.StatusInternalServerError, "failed to start search")
+		return
+	}
+
+	// No partner yet — block until one arrives, client disconnects, or 30s timeout.
 	select {
 	case result := <-waitCh:
-		// Partner arrived — User A's request resolves right now
+		// Partner arrived — User A's request resolves right now.
 		utils.SendSuccess(c, http.StatusOK, "match found", map[string]string{
 			"matchId":   result.MatchID,
 			"partnerId": result.PartnerID,
 		})
 
 	case <-c.Request.Context().Done():
-		// Client disconnected — clean up
+		// Client disconnected — clean up.
 		service.CancelSearch(c.Request.Context(), userID)
 
 	case <-time.After(30 * time.Second):
-		// Timeout — tell client to retry
+		// Timeout — tell client to retry.
 		service.CancelSearch(c.Request.Context(), userID)
 		utils.SendSuccess(c, http.StatusAccepted, "still searching... call again to keep waiting", nil)
 	}
@@ -88,4 +115,3 @@ func LeaveMatch(c *gin.Context) {
 
 	utils.SendSuccess(c, http.StatusOK, "match ended", nil)
 }
-
