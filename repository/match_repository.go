@@ -2,8 +2,8 @@
 //
 // Data structures:
 //  1. genderPartitions — three sharded FIFO queues, one per gender bucket
-//                        (male / female / other). Each shard has its own mutex,
-//                        so male-only searches never block female-only searches.
+//     (male / female / other). Each shard has its own mutex,
+//     so male-only searches never block female-only searches.
 //  2. queuedSet        — sync.Map for O(1) duplicate-enqueue detection.
 //  3. activeMatches    — active matches (matchID → Match, userID → matchID).
 //  4. waiterRegistry   — channels that long-poll HTTP handlers block on.
