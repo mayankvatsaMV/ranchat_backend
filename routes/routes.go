@@ -40,10 +40,10 @@ func RegisterRoutes(r *gin.Engine) {
 		auth.DELETE("/matches/me", controller.LeaveMatch)       // leave active match
 
 		// Friends
-		auth.POST("/friends/requests", controller.SendFriendRequest)                          // send a request (HTTP fallback)
-		auth.GET("/friends/requests", controller.GetMyFriendRequests)                         // list pending received requests
-		auth.POST("/friends/requests/:requestId/accept", controller.AcceptFriendRequest)      // accept a request
-		auth.POST("/friends/requests/:requestId/reject", controller.RejectFriendRequest)      // reject a request
-		auth.GET("/friends", controller.GetMyFriends)                                         // list all friendships
+		auth.POST("/friends/requests", controller.SendFriendRequest)                     // send a request (HTTP fallback)
+		auth.GET("/friends/requests", controller.GetMyFriendRequests)                    // list pending received requests
+		auth.POST("/friends/requests/:requestId/accept", controller.AcceptFriendRequest) // accept a request
+		auth.POST("/friends/requests/:requestId/reject", controller.RejectFriendRequest) // reject a request
+		auth.GET("/friends", controller.GetMyFriends)                                    // list all friendships
 	}
 }

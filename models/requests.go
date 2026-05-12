@@ -31,6 +31,15 @@ type UpdatePresenceRequest struct {
 	TypingTo     *string `json:"typingTo"`     // send null JSON to stop typing indicator
 }
 
+// StartSearchRequest is the optional body for POST /api/v1/matches/search.
+// All fields are optional — omitting the body is equivalent to wantGender = "anyone".
+type StartSearchRequest struct {
+	// WantGender filters matches by the partner's gender.
+	// Accepted values: "anyone" | "male" | "female" | "other"
+	// Omitting the field or sending "" is treated as "anyone".
+	WantGender GenderPreference `json:"wantGender" binding:"omitempty,oneof=anyone male female other"`
+}
+
 // ─── Auth response ────────────────────────────────────────────────────────────
 
 // AuthResponse is returned after a successful login.
