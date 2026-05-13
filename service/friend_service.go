@@ -26,7 +26,6 @@ func SendFriendRequest(ctx context.Context, senderID, matchID string) (*models.F
 	if err != nil {
 		return nil, http.StatusBadRequest, errors.New("invalid senderId")
 	}
-
 	// 1. Validate: sender must be part of this active match
 	match := repository.GetMatchByUser(senderID)
 	if match == nil || match.MatchID != matchID {

@@ -138,6 +138,45 @@ func EnsureIndexes() {
 		log.Fatalf("Failed to create friendships indexes: %v", err)
 	}
 
+	// ── chats collection indexes ──────────────────────────────────────────────
+	chatIndexes := []mongo.IndexModel{
+		{
+			// Unique chatId — prevents duplicate chat docs for the same pair
+			Keys:    bson.D{{Key: "chatId", Value: 1}},
+			Options: options.Index().SetUnique(true).SetName("idx_chat_chatId_unique"),
+		},
+		{
+			// Quickly find all chats for a user (friend list query)
+			Keys:    bson.D{{Key: "members", Value: 1}},
+			Options: options.Index().SetName("idx_chat_members"),
+		},
+		{
+			// Sort chats by most recent activity
+			Keys:    bson.D{{Key: "lastMessageAt", Value: -1}},
+			Options: options.Index().SetName("idx_chat_lastMessageAt"),
+		},
+	}
+	if _, err := DB.Collection("chats").Indexes().CreateMany(ctx, chatIndexes); err != nil {
+		log.Fatalf("Failed to create chats indexes: %v", err)
+	}
+
+	// ── messages collection indexes ────────────────────────────────────────────
+	msgIndexes := []mongo.IndexModel{
+		{
+			// Primary query: all messages in a chat, newest first (cursor pagination)
+			Keys:    bson.D{{Key: "chatId", Value: 1}, {Key: "_id", Value: -1}},
+			Options: options.Index().SetName("idx_msg_chatId_id"),
+		},
+		{
+			// Allows quick look-up of all messages sent by a specific user
+			Keys:    bson.D{{Key: "senderId", Value: 1}},
+			Options: options.Index().SetName("idx_msg_senderId"),
+		},
+	}
+	if _, err := DB.Collection("messages").Indexes().CreateMany(ctx, msgIndexes); err != nil {
+		log.Fatalf("Failed to create messages indexes: %v", err)
+	}
+
 	fmt.Println("✅ MongoDB indexes ready")
 }
 

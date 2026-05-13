@@ -19,6 +19,10 @@ func RegisterRoutes(r *gin.Engine) {
 	// Connect AFTER receiving a matchId from POST /matches/search
 	r.GET("/ws/match/:matchId", controller.ConnectMatchWS)
 
+	// ── WebSocket — Friend chat sessions (token in query param) ────────────
+	// Connect AFTER calling POST /api/v1/chats/open to get the chatId
+	r.GET("/ws/chat/:chatId", controller.ConnectChatWS)
+
 	// ── Protected (valid JWT required) ────────────────────────────────────────
 	auth := v1.Group("/")
 	auth.Use(middleware.AuthRequired())
@@ -45,5 +49,12 @@ func RegisterRoutes(r *gin.Engine) {
 		auth.POST("/friends/requests/:requestId/accept", controller.AcceptFriendRequest) // accept a request
 		auth.POST("/friends/requests/:requestId/reject", controller.RejectFriendRequest) // reject a request
 		auth.GET("/friends", controller.GetMyFriends)                                    // list all friendships
+
+		// Chat (friend messaging)
+		auth.GET("/chats", controller.GetMyChats)                                                   // friend list + chat previews
+		auth.POST("/chats/open", controller.OpenChat)                                               // open / create a chat with a friend
+		auth.GET("/chats/:chatId/messages", controller.GetChatMessages)                             // paginated message history
+		auth.POST("/chats/:chatId/messages", controller.SendMessageHTTP)                            // send a message (HTTP fallback)
+		auth.DELETE("/chats/:chatId/messages/:messageId", controller.DeleteMessage)                 // soft-delete a message
 	}
 }
