@@ -361,7 +361,7 @@ const docTemplate = `{
 // SwaggerInfo holds exported Swagger Info of embedded documentation
 var SwaggerInfo = &swag.Spec{
 	Version:          "1.0",
-	Host:             "localhost:8080",
+	Host:             "kacie-zincy-arielle.ngrok-free.dev",
 	BasePath:         "",
 	Schemes:          []string{"http", "https", "ws"},
 	Title:            "RanChat API Engine Documentation",
