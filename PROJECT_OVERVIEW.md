@@ -1,10 +1,10 @@
 # 🚀 RanChat - Comprehensive System Architecture & Detailed Technical Overview
 
 **Project:** RanChat (Omegle-like Random Text/Video Chat Platform Backend Engine)  
-**Tech Stack:** Go (Golang 1.26.1), Gin Framework v1.12, Redis v9 (Presence Engine), MongoDB Driver v2 (Persistence Engine), JWT Authentication & Middleware, HTTP Long-Polling Matchmaking Engine, Domain Events (DDD), Exponential Backoff Retries  
+**Tech Stack:** Go (Golang 1.26.1), Gin Framework v1.12, Gorilla WebSocket v1.5, Redis v9 (Presence Engine), MongoDB Driver v2 (Persistence Engine), JWT Authentication & Middleware, HTTP Long-Polling Matchmaking Engine, Domain Events (DDD), Exponential Backoff Retries  
 **Last Updated:** September 29, 2026  
-**Overall Architecture Rating:** **8.7 / 10** *(Clean Event-Driven Domain-Driven Monolith with Redis Presence, Long-Polling Matchmaking Engine & Persistent Friendship System)*  
-**Primary Objective:** High-throughput, sub-second latency user onboarding, Redis-backed status tracking, interest/gender-matched random pairing, persistent friendship connections, and scalable chat backend foundation.
+**Overall Architecture Rating:** **8.9 / 10** *(Clean Event-Driven Domain-Driven Monolith with Redis Presence, Long-Polling Matchmaking Engine, Active WebSocket Hub & Persistent Friendship System)*  
+**Primary Objective:** High-throughput, sub-second latency user onboarding, Redis-backed status tracking, interest/gender-matched random pairing, real-time WebSocket notifications, persistent friendship connections, and scalable chat backend foundation.
 
 ---
 
@@ -12,14 +12,14 @@
 
 | Domain Context | Rating | Status & Observations |
 | :--- | :---: | :--- |
-| **Architecture & DDD** | 🟢 **9.0 / 10** | Strict Bounded Context isolation between Auth, Presence, Matchmaking, and Friendship via [`events/dispatcher.go`](file:///c:/Users/mayank/Desktop/goprojects/ranchat/events/dispatcher.go) & middleware. Zero circular imports. |
+| **Architecture & DDD** | 🟢 **9.0 / 10** | Strict Bounded Context isolation between Auth, Presence, Matchmaking, Friendship, and WebSocket via [`events/dispatcher.go`](file:///c:/Users/mayank/Desktop/goprojects/ranchat/events/dispatcher.go) & middleware. Zero circular imports. |
 | **Eventual Consistency** | 🟢 **9.0 / 10** | Non-blocking signup HTTP handlers. MongoDB primary write succeeds first; Redis presence state converges asynchronously via event dispatching. |
 | **Fault Tolerance & Retries** | 🟢 **8.5 / 10** | Production-standard retry system ([`utils/retries.go`](file:///c:/Users/mayank/Desktop/goprojects/ranchat/utils/retries.go)) featuring exponential backoff & context cancellation safety. |
 | **Authentication & Security** | 🟢 **8.5 / 10** | MongoDB v2 driver integration, JWT token generation & verification ([`internals/middleware/auth_middleware.go`](file:///c:/Users/mayank/Desktop/goprojects/ranchat/internals/middleware/auth_middleware.go)), monetization & premium status tracking. |
 | **Presence System** | 🟢 **8.5 / 10** | High-performance Redis repository ([`redis_presence_repository.go`](file:///c:/Users/mayank/Desktop/goprojects/ranchat/internals/presence/repository/redis_presence_repository.go)) active in `main.go`. Key schema `presence:<userID>` with 20s heartbeat renewal. |
 | **Matchmaking Engine** | 🟢 **8.0 / 10** | HTTP Long-Polling engine ([`match_making_services.go`](file:///c:/Users/mayank/Desktop/goprojects/ranchat/internals/match_making/services/match_making_services.go)) with reciprocal criteria matching (Interest, Gender, GenderPref) and 30-second context timeout. Audit in [`matchmakingoverview.md`](file:///c:/Users/mayank/Desktop/goprojects/ranchat/matchmakingoverview.md). |
-| **Friendship System** | 🟡 **7.0 / 10** | MongoDB-backed Friendship module ([`internals/friendship`](file:///c:/Users/mayank/Desktop/goprojects/ranchat/internals/friendship)) managing friend requests, acceptance/declining, friend listing, and removal. Audit in [`friendshipoverview.md`](file:///c:/Users/mayank/Desktop/goprojects/ranchat/friendshipoverview.md). |
-| **Real-time & WebSockets** | 🟡 **4.0 / 10** | HTTP Long-Polling matching active. Pending WebSockets (`/v1/ws`) and WebRTC SDP signaling for live media streaming. |
+| **Real-time & WebSockets** | 🟢 **8.5 / 10** | Fully operational WebSocket Hub ([`internals/websocket`](file:///c:/Users/mayank/Desktop/goprojects/ranchat/internals/websocket)) at `/v1/ws` enabling real-time connection tracking and direct JSON pushes (e.g. `friend_request_received`). |
+| **Friendship System** | 🟡 **7.0 / 10** | MongoDB-backed Friendship module ([`internals/friendship`](file:///c:/Users/mayank/Desktop/goprojects/ranchat/internals/friendship)) integrated with `WebSocketHub` for instant notifications. Audit in [`friendshipoverview.md`](file:///c:/Users/mayank/Desktop/goprojects/ranchat/friendshipoverview.md). |
 
 ---
 
@@ -30,9 +30,59 @@ The codebase is strictly organized into independent domain contexts:
 1. **Authentication Context** ([`internals/authentication`](file:///c:/Users/mayank/Desktop/goprojects/ranchat/internals/authentication)): Manages user registration, login, profile updates, JWT issuance, and MongoDB persistence. Emits domain events (`UserSignedUpEvent`).
 2. **Presence Context** ([`internals/presence`](file:///c:/Users/mayank/Desktop/goprojects/ranchat/internals/presence)): Manages online status, device IDs, heartbeats, and active chat states via Redis (`RedisPresenceRepository`). Listens to domain events without importing Auth controllers.
 3. **Matchmaking Context** ([`internals/match_making`](file:///c:/Users/mayank/Desktop/goprojects/ranchat/internals/match_making)): Handles user pairing using in-memory request queues (`MatchmakingMemoryDB`), match tracking (`MatchMemoryDB`), and long-polling notification channels (`EnqueueChan`).
-4. **Friendship Context** ([`internals/friendship`](file:///c:/Users/mayank/Desktop/goprojects/ranchat/internals/friendship)): Manages asynchronous friend request workflows (send, accept, decline), active friend list management, and friend removal stored in MongoDB collections (`friends` & `friendrequests`).
-5. **Middleware Layer** ([`internals/middleware`](file:///c:/Users/mayank/Desktop/goprojects/ranchat/internals/middleware)): Centralized `AuthMiddleware` verifying Bearer JWT tokens and attaching `userId` to Gin context for protected routes.
-6. **Event Bus** ([`events/dispatcher.go`](file:///c:/Users/mayank/Desktop/goprojects/ranchat/events/dispatcher.go)): A lightweight shared pub/sub dispatcher bridging domain events asynchronously without package dependencies.
+4. **WebSocket Context** ([`internals/websocket`](file:///c:/Users/mayank/Desktop/goprojects/ranchat/internals/websocket)): Manages active persistent WebSocket connections (`WebSocketHub`) at `/v1/ws` and enables real-time client pushes.
+5. **Friendship Context** ([`internals/friendship`](file:///c:/Users/mayank/Desktop/goprojects/ranchat/internals/friendship)): Manages asynchronous friend request workflows (send, accept, decline), active friend list management, and real-time WebSocket request popups (`WSHub.SendToUser`).
+6. **Middleware Layer** ([`internals/middleware`](file:///c:/Users/mayank/Desktop/goprojects/ranchat/internals/middleware)): Centralized `AuthMiddleware` verifying Bearer JWT tokens and attaching `userId` to Gin context for protected HTTP and WebSocket routes.
+7. **Event Bus** ([`events/dispatcher.go`](file:///c:/Users/mayank/Desktop/goprojects/ranchat/events/dispatcher.go)): A lightweight shared pub/sub dispatcher bridging domain events asynchronously without package dependencies.
+
+---
+
+### Pattern B: Real-Time WebSocket Notification Flow
+
+```
+[ User A ]                                [ Server / WSHub ]                          [ User B ]
+    │                                             │                                       │
+    │ ─── 1. Connected to /v1/ws ───────────────► │ ◄─── 2. Connected to /v1/ws ───────── │
+    │     Registered in `WebSocketHub`            │     Registered in `WebSocketHub`      │
+    │                                             │                                       │
+    │ ─── 3. POST /v1/friendship/requests ──────► │                                       │
+    │     { "receiver_id": "UserB_ID" }           │ ──► Saved to MongoDB                  │
+    │                                             │                                       │
+    │                                             │ ─── 4. `WSHub.SendToUser(UserB_ID)` ─►│
+    │ ◄── 5. HTTP 201 Created ─────────────────── │     `{"event":"friend_request"}`     │
+```
+
+---
+
+## 📁 3. Detailed Package Breakdown & Code Anatomy
+
+```text
+ranchat/
+├── cmd/
+│   └── main.go                             # App bootstrapping, Redis/Mongo/WSHub setup, route registration
+├── internals/
+│   ├── websocket/
+│   │   ├── hub.go                          # Thread-safe WebSocketHub mapping UserID -> *websocket.Conn
+│   │   └── ws_controller.go                # HTTP upgrader handler for GET /v1/ws endpoint
+│   ├── friendship/
+│   │   ├── controllers/
+│   │   │   └── friendship_controller.go   # Handlers using WSHub to push real-time friend requests
+│   │   ├── dto/
+│   │   ├── models/
+│   │   ├── repository/
+│   │   ├── routes/
+│   │   └── services/
+```
+
+---
+
+## 🌐 4. Complete API Endpoints Reference
+
+### ⚡ WebSocket Context (`/v1/ws`)
+| Method | Endpoint | Access | Description |
+| :--- | :--- | :---: | :--- |
+| `GET` | `/v1/ws` | Protected | Upgrades HTTP connection to WebSocket protocol, registers connection in `WebSocketHub`. |
+
 
 ---
 
