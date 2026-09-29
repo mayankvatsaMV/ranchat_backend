@@ -36,8 +36,12 @@ import (
 	presenceRoutes "ranchat/internals/presence/routes"
 	presenceServices "ranchat/internals/presence/services"
 
+	_ "ranchat/docs"
+
 	"github.com/gin-gonic/gin"
 	"github.com/redis/go-redis/v9"
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
 func main() {
@@ -208,6 +212,9 @@ func main() {
 	)
 	wsHandler := &ws.WSHandler{Hub: wsHub}
 	server.GET("/v1/ws", middleware.AuthMiddleware(), wsHandler.ConnectWS)
+
+	// Swagger UI route (Access at http://localhost:8080/swagger/index.html)
+	server.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler))
 
 	// --------------------------------------------------
 	// Start Server
