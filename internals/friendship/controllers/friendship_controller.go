@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"net/http"
+	"time"
 
 	"ranchat/internals/friendship/models"
 	"ranchat/internals/friendship/services"
@@ -64,6 +65,9 @@ func (fc *FriendshipController) SendFriendRequest(ctx *gin.Context) {
 
 	// Never trust SenderID from the client.
 	request.SenderID = senderID
+	request.CreatedAt = time.Now()
+	request.UpdatedAt = time.Now()
+
 	friendReqObj, err := fc.Service.SendFriendRequest(
 		ctx.Request.Context(),
 		request,
