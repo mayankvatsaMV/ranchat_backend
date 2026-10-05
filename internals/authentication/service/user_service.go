@@ -98,6 +98,33 @@ func (u *UserServices) UpdateUser(
 				nil
 		}
 	}
+	if val, ok := updates["gender"]; ok {
+		gender, ok := val.(string)
+		if !ok {
+			return models.User{},
+				dto.ErrorResponse{
+					StatusCode: 400,
+					Message:    "gender must be a string",
+				},
+				nil
+		}
+
+		switch gender {
+		case string(models.GenderMale),
+			string(models.GenderFemale),
+			string(models.GenderOther):
+
+			allowedUpdates["gender"] = gender
+
+		default:
+			return models.User{},
+				dto.ErrorResponse{
+					StatusCode: 400,
+					Message:    "invalid gender",
+				},
+				nil
+		}
+	}
 
 	if val, ok := updates["bio"]; ok {
 		bio, ok := val.(string)
