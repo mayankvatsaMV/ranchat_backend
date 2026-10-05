@@ -2,7 +2,7 @@ package repository
 
 import (
 	"context"
-	errors "ranchat"
+	"ranchat/errors"
 	"ranchat/internals/presence/database"
 	"ranchat/internals/presence/dto"
 	"ranchat/internals/presence/models"

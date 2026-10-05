@@ -2,7 +2,7 @@ package service
 
 import (
 	"context"
-	errors "ranchat"
+	"ranchat/errors"
 	"ranchat/events"
 	"ranchat/internals/authentication/dto"
 	"ranchat/internals/authentication/models"

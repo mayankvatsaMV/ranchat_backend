@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"time"
 
-	errors "ranchat"
+	"ranchat/errors"
 	"ranchat/internals/presence/dto"
 	"ranchat/internals/presence/models"
 

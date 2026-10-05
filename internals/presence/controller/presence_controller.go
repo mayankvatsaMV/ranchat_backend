@@ -2,7 +2,7 @@ package controller
 
 import (
 	"net/http"
-	errors "ranchat"
+	"ranchat/errors"
 	"ranchat/internals/presence/dto"
 	service "ranchat/internals/presence/services"
 

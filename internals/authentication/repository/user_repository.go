@@ -2,7 +2,7 @@ package repository
 
 import (
 	"context"
-	errors "ranchat"
+	"ranchat/errors"
 	"ranchat/internals/authentication/models"
 
 	"go.mongodb.org/mongo-driver/v2/bson"

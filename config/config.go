@@ -20,7 +20,7 @@ type Config struct {
 
 // Load environment variables
 func (c *Config) LoadEnvs() error {
-	err := godotenv.Load("../.env")
+	err := godotenv.Load(".env")
 
 	if err != nil {
 		return err
