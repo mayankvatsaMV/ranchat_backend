@@ -17,6 +17,32 @@ func NewPresenceController(serv *service.PresenceService) *PresenceController {
 	return &PresenceController{Serv: serv}
 }
 
+func (c *PresenceController) GetPresence(ctx *gin.Context) {
+	if _, exists := ctx.Get("userId"); !exists {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "Unauthorized"})
+		return
+	}
+
+	userID := ctx.Param("userId")
+	if userID == "" {
+		ctx.JSON(http.StatusBadRequest, gin.H{"error": "userId is required"})
+		return
+	}
+
+	presence, err := c.Serv.GetPresence(ctx, userID)
+	if err != nil {
+		switch err {
+		case errors.ErrPresenceNotFound:
+			ctx.JSON(http.StatusNotFound, gin.H{"error": "Presence not found"})
+		default:
+			ctx.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		}
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{"lastActiveAt": presence.LastActiveAt})
+}
+
 func (c *PresenceController) UpsertPresence(ctx *gin.Context) {
 	uid, exists := ctx.Get("userId")
 	if !exists {

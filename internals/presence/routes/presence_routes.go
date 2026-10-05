@@ -10,6 +10,7 @@ import (
 func RegisterPresenceRoutes(router *gin.Engine, presenceController *controller.PresenceController) {
 	private := router.Group("/v1/presence", middleware.AuthMiddleware())
 	{
+		private.GET("/:userId", presenceController.GetPresence)
 		// POST /v1/presence → calls controller.UpsertPresence
 		private.POST("", presenceController.UpsertPresence)
 		private.POST("heartbeat", presenceController.HeartBeat)

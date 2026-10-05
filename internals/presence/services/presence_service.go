@@ -16,6 +16,10 @@ func NewPresenceService(repo repository.PresenceRepository) *PresenceService {
 	return &PresenceService{Repo: repo}
 }
 
+func (s *PresenceService) GetPresence(ctx context.Context, userID string) (*models.Presence, error) {
+	return s.Repo.GetPresence(ctx, userID)
+}
+
 func (s *PresenceService) UpsertPresence(ctx context.Context, userId, deviceId string) (*models.Presence, error) {
 	// Initialize model
 	p := &models.Presence{
