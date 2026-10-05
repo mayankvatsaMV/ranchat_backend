@@ -18,6 +18,9 @@ type WSHandler struct {
 func (h *WSHandler) ConnectWS(ctx *gin.Context) {
 	userIDValue, exists := ctx.Get("userId")
 	if !exists {
+		userIDValue, exists = ctx.Get("user_id")
+	}
+	if !exists {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
 		return
 	}

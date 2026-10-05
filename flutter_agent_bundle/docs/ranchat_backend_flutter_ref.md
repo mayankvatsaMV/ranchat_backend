@@ -322,6 +322,71 @@ All protected endpoints require the HTTP header:
 
 ---
 
+### 💬 1-on-1 Chat Subsystem (`/v1/chat`)
+
+#### 1. Send Message
+- **Method:** `POST`
+- **Path:** `/v1/chat/messages`
+- **Access:** Protected (JWT required)
+- **Request Body Payload:**
+  ```json
+  {
+    "receiver_id": "66fa54122b11d8c11e74a813",
+    "content": "Hey! How are you doing?",
+    "message_type": "text"
+  }
+  ```
+- **Response `201 Created`:**
+  ```json
+  {
+    "message": {
+      "id": "66fa57772b11d8c11e74a999",
+      "conversation_id": "66fa54122b11d8c11e74a812_66fa54122b11d8c11e74a813",
+      "sender_id": "66fa54122b11d8c11e74a812",
+      "receiver_id": "66fa54122b11d8c11e74a813",
+      "content": "Hey! How are you doing?",
+      "message_type": "text",
+      "status": "sent",
+      "created_at": "2026-10-01T00:30:00Z"
+    }
+  }
+  ```
+
+#### 2. Get Chat History
+- **Method:** `GET`
+- **Path:** `/v1/chat/messages/:receiver_id?limit=50`
+- **Access:** Protected (JWT required)
+- **Response `200 OK`:**
+  ```json
+  {
+    "messages": [
+      {
+        "id": "66fa57772b11d8c11e74a999",
+        "conversation_id": "66fa54122b11d8c11e74a812_66fa54122b11d8c11e74a813",
+        "sender_id": "66fa54122b11d8c11e74a812",
+        "receiver_id": "66fa54122b11d8c11e74a813",
+        "content": "Hey! How are you doing?",
+        "message_type": "text",
+        "status": "sent",
+        "created_at": "2026-10-01T00:30:00Z"
+      }
+    ]
+  }
+  ```
+
+#### 3. Mark Messages as Read
+- **Method:** `PATCH`
+- **Path:** `/v1/chat/messages/:receiver_id/read`
+- **Access:** Protected (JWT required)
+- **Response `200 OK`:**
+  ```json
+  {
+    "message": "messages marked as read"
+  }
+  ```
+
+---
+
 ## ⚡ 3. WebSocket Protocol & Real-Time Events (`/v1/ws`)
 
 ### Connection Handshake
@@ -331,25 +396,31 @@ All protected endpoints require the HTTP header:
 
 ### Inbound Server Events (Server -> Client)
 
+#### 1. Friend Request Event
 ```json
 {
   "event": "friend_request_received",
   "data": {
     "request_id": "66fa55112b11d8c11e74a900",
     "sender_id": "66fa54122b11d8c11e74a813",
-    "sender_name": "Alex",
-    "created_at": "2026-09-29T10:32:00Z"
+    "message": "You received a new friend request!"
   }
 }
 ```
 
+#### 2. Real-Time Chat Message Event
 ```json
 {
-  "event": "chat_message",
+  "event": "new_message",
   "data": {
-    "sender_id": "66fa54122b11d8c11e74a813",
-    "message": "Hey! Loved your bio.",
-    "timestamp": "2026-09-29T10:33:10Z"
+    "id": "66fa57772b11d8c11e74a999",
+    "conversation_id": "66fa54122b11d8c11e74a812_66fa54122b11d8c11e74a813",
+    "sender_id": "66fa54122b11d8c11e74a812",
+    "receiver_id": "66fa54122b11d8c11e74a813",
+    "content": "Hey! How are you doing?",
+    "message_type": "text",
+    "status": "sent",
+    "created_at": "2026-10-01T00:30:00Z"
   }
 }
 ```

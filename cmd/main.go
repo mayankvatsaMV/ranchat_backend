@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"log"
+	"net/http"
 
 	"ranchat/config"
 	"ranchat/events"
@@ -21,6 +22,12 @@ import (
 	friendshipRepository "ranchat/internals/friendship/repository"
 	friendshipRoutes "ranchat/internals/friendship/routes"
 	friendshipServices "ranchat/internals/friendship/services"
+
+	// Chats
+	chatsController "ranchat/internals/chats/controller"
+	chatsRepository "ranchat/internals/chats/repository"
+	chatsRoutes "ranchat/internals/chats/routers"
+	chatsServices "ranchat/internals/chats/services"
 
 	// Matchmaking
 	matchmakingController "ranchat/internals/match_making/controllers"
@@ -88,11 +95,8 @@ func main() {
 	// --------------------------------------------------
 	// Redis
 	// --------------------------------------------------
-
-	redisClient := redis.NewClient(&redis.Options{
-		Addr: "localhost:6379",
-	})
-
+	opt, _ := redis.ParseURL(conf.REDIS_URL)
+	redisClient := redis.NewClient(opt)
 	if err := redisClient.Ping(context.Background()).Err(); err != nil {
 		log.Fatal("Redis connection failed:", err)
 	}
@@ -178,6 +182,14 @@ func main() {
 	)
 
 	// --------------------------------------------------
+	// Chats
+	// --------------------------------------------------
+
+	chatsRepo := chatsRepository.NewMongoChatRepository(db)
+	chatsService := chatsServices.NewChatService(chatsRepo)
+	chatsCtrl := chatsController.NewChatController(chatsService, wsHub)
+
+	// --------------------------------------------------
 	// Gin Server
 	// --------------------------------------------------
 
@@ -186,6 +198,10 @@ func main() {
 	server := gin.New()
 	server.Use(gin.Recovery())
 	server.Use(gin.Logger())
+	server.Use(middleware.CORSMiddleware())
+	server.GET("/", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{"status": "ok"})
+	})
 
 	// --------------------------------------------------
 	// Routes
@@ -210,6 +226,13 @@ func main() {
 		server,
 		*friendshipController,
 	)
+
+	chatsRoutes.RegisterChatRoutes(
+		server.Group("/v1"),
+		chatsCtrl,
+		middleware.AuthMiddleware(),
+	)
+
 	wsHandler := &ws.WSHandler{Hub: wsHub}
 	server.GET("/v1/ws", middleware.AuthMiddleware(), wsHandler.ConnectWS)
 

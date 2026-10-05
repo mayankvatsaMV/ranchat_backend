@@ -114,17 +114,23 @@ lib/
 1. **Connection Handshake**: Establish WebSocket connection at `ws://<host>:<port>/v1/ws?token=<JWT>` or with Bearer header.
 2. **Event Parsing**: Listen on Stream channel for inbound JSON payloads:
    - `friend_request_received`: Trigger a dynamic overlay toast / snackbar notification for incoming friend request.
-   - `chat_message`: Append message to current chat feed.
+   - `new_message`: Append 1-on-1 real-time message to current chat feed instantly.
    - `typing_indicator`: Display typing status in active chat header.
 3. **Heartbeat / Ping**: Maintain WS connection health with automatic reconnect logic on disconnect.
 
-### Phase 6: Friendship Subsystem & Social UI
+### Phase 6: Friendship Subsystem & 1-on-1 Real-Time Chat UI
 1. **Send Friend Request**: Call `POST /v1/friendship/requests` with `{ "receiver_id": "<partner_user_id>" }`.
 2. **Pending Requests List**: Fetch from `GET /v1/friendship/requests`. Display red badge count on Friends tab.
 3. **Accept / Decline Actions**:
    - Call `POST /v1/friendship/requests/:requestId/accept` or `decline`.
    - Refresh local friendship state immediately on success.
 4. **Friends List & Unfriend**: Fetch active list via `GET /v1/friendship/friends`. Enable sliding swipe-to-delete to call `DELETE /v1/friendship/friends/:id`.
+5. **1-on-1 Chat & History**:
+   - Tap a friend to open `1-on-1 Chat Screen`.
+   - Load historical messages: `GET /v1/chat/messages/:receiver_id`.
+   - Send message: `POST /v1/chat/messages` with payload `{ "receiver_id": "...", "content": "...", "message_type": "text" }`.
+   - Real-time stream receives `"new_message"` event over WS to update chat UI instantly.
+   - Mark messages as read: `PATCH /v1/chat/messages/:receiver_id/read`.
 
 ---
 

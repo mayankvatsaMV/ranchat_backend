@@ -15,6 +15,7 @@ type Config struct {
 	PORT       string
 	MONGO_URI  string
 	JWT_SECRET string
+	REDIS_URL  string
 }
 
 // Load environment variables
@@ -27,6 +28,7 @@ func (c *Config) LoadEnvs() error {
 	c.PORT = os.Getenv("PORT")
 	c.JWT_SECRET = os.Getenv("JWT_SECRET")
 	c.MONGO_URI = os.Getenv("MONGO_URI")
+	c.REDIS_URL = os.Getenv("REDIS_URL")
 	return nil
 }
 
