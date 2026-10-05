@@ -51,46 +51,133 @@ func (u *UserServices) AddUser(ctx context.Context, user models.User) (string, d
 }
 
 // UpdateUser applies partial updates to a user
-func (u *UserServices) UpdateUser(ctx context.Context, updates map[string]any, id string) (models.User, dto.ErrorResponse, error) {
-	objId, err := bson.ObjectIDFromHex(id)
+func (u *UserServices) UpdateUser(
+	ctx context.Context,
+	updates map[string]any,
+	id string,
+) (models.User, dto.ErrorResponse, error) {
+
+	objID, err := bson.ObjectIDFromHex(id)
 	if err != nil {
-		return models.User{}, dto.ErrorResponse{StatusCode: 500, Message: "Internal Server Error"}, err
+		return models.User{},
+			dto.ErrorResponse{
+				StatusCode: 400,
+				Message:    "Invalid user ID",
+			},
+			err
 	}
-	updateObj := models.User{UserId: objId}
 
-	if val, ok := updates["name"]; ok && val != nil {
-		if name, ok := val.(string); ok {
-			updateObj.Name = name
+	// Only allow fields that the user is allowed to update.
+	allowedUpdates := make(map[string]any)
+
+	if val, ok := updates["name"]; ok {
+		name, ok := val.(string)
+		if !ok {
+			return models.User{},
+				dto.ErrorResponse{
+					StatusCode: 400,
+					Message:    "name must be a string",
+				},
+				nil
 		}
+
+		allowedUpdates["name"] = name
 	}
-	if val, ok := updates["age"]; ok && val != nil {
+
+	if val, ok := updates["age"]; ok {
 		switch age := val.(type) {
-		case int:
-			updateObj.Age = age
 		case float64:
-			updateObj.Age = int(age)
-		}
-	}
-	if val, ok := updates["bio"]; ok && val != nil {
-		if bio, ok := val.(string); ok {
-			updateObj.Bio = bio
-		}
-	}
-	if val, ok := updates["interest"]; ok && val != nil {
-		if interests, ok := val.([]string); ok {
-			updateObj.Interest = interests
+			allowedUpdates["age"] = int(age)
+
+		default:
+			return models.User{},
+				dto.ErrorResponse{
+					StatusCode: 400,
+					Message:    "age must be a number",
+				},
+				nil
 		}
 	}
 
-	updatedUser, err := u.Repo.UpdateUser(ctx, updateObj)
+	if val, ok := updates["bio"]; ok {
+		bio, ok := val.(string)
+		if !ok {
+			return models.User{},
+				dto.ErrorResponse{
+					StatusCode: 400,
+					Message:    "bio must be a string",
+				},
+				nil
+		}
+
+		allowedUpdates["bio"] = bio
+	}
+
+	if val, ok := updates["interest"]; ok {
+		interests, ok := val.([]any)
+		if !ok {
+			return models.User{},
+				dto.ErrorResponse{
+					StatusCode: 400,
+					Message:    "interest must be an array",
+				},
+				nil
+		}
+
+		interestList := make([]string, 0, len(interests))
+
+		for _, item := range interests {
+			interest, ok := item.(string)
+			if !ok {
+				return models.User{},
+					dto.ErrorResponse{
+						StatusCode: 400,
+						Message:    "interest must contain strings",
+					},
+					nil
+			}
+
+			interestList = append(interestList, interest)
+		}
+
+		allowedUpdates["interest"] = interestList
+	}
+
+	if len(allowedUpdates) == 0 {
+		return models.User{},
+			dto.ErrorResponse{
+				StatusCode: 400,
+				Message:    "No valid fields provided for update",
+			},
+			nil
+	}
+
+	updatedUser, err := u.Repo.UpdateUser(
+		ctx,
+		objID,
+		allowedUpdates,
+	)
+
 	if err != nil {
 		switch err {
 		case errors.ErrUserNotFound:
-			return models.User{}, dto.ErrorResponse{StatusCode: 404, Message: "User not found"}, err
+			return models.User{},
+				dto.ErrorResponse{
+					StatusCode: 404,
+					Message:    "User not found",
+				},
+				err
+
 		default:
-			return models.User{}, dto.ErrorResponse{StatusCode: 500, Message: "Database error"}, err
+			return models.User{},
+				dto.ErrorResponse{
+					StatusCode: 500,
+					Message:    "Database error",
+				},
+				err
 		}
 	}
+
 	return updatedUser, dto.ErrorResponse{}, nil
 }
 

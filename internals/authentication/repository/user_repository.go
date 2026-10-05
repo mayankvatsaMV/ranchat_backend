@@ -12,7 +12,11 @@ import (
 
 type UserRepository interface {
 	CreateUser(ctx context.Context, user models.User) error
-	UpdateUser(ctx context.Context, user models.User) (models.User, error)
+	UpdateUser(
+		ctx context.Context,
+		id bson.ObjectID,
+		updates map[string]any,
+	) (models.User, error)
 	GetUserById(ctx context.Context, id string) (models.User, error)
 }
 
@@ -38,18 +42,37 @@ func (repo *MongoUserRepo) CreateUser(ctx context.Context, user models.User) err
 	return nil
 }
 
-func (repo *MongoUserRepo) UpdateUser(ctx context.Context, user models.User) (models.User, error) {
-	filter := bson.M{"_id": user.UserId}
-	update := bson.M{"$set": user}
+func (repo *MongoUserRepo) UpdateUser(
+	ctx context.Context,
+	id bson.ObjectID,
+	updates map[string]any,
+) (models.User, error) {
 
-	opt := options.FindOneAndUpdate().SetReturnDocument(options.After)
-	result := repo.collection.FindOneAndUpdate(ctx, filter, update, opt)
+	filter := bson.M{
+		"_id": id,
+	}
 
-	updated := models.User{}
+	update := bson.M{
+		"$set": updates,
+	}
+
+	opt := options.FindOneAndUpdate().
+		SetReturnDocument(options.After)
+
+	result := repo.collection.FindOneAndUpdate(
+		ctx,
+		filter,
+		update,
+		opt,
+	)
+
+	var updated models.User
+
 	if err := result.Decode(&updated); err != nil {
 		if err == mongo.ErrNoDocuments {
 			return models.User{}, errors.ErrUserNotFound
 		}
+
 		return models.User{}, errors.ErrDBFailure
 	}
 
