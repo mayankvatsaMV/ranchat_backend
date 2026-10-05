@@ -20,11 +20,7 @@ type Config struct {
 
 // Load environment variables
 func (c *Config) LoadEnvs() error {
-	err := godotenv.Load(".env")
-
-	if err != nil {
-		return err
-	}
+	_ = godotenv.Load(".env")
 	c.PORT = os.Getenv("PORT")
 	c.JWT_SECRET = os.Getenv("JWT_SECRET")
 	c.MONGO_URI = os.Getenv("MONGO_URI")
