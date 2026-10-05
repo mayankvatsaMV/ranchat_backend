@@ -349,6 +349,7 @@ ranchat/
 | :--- | :--- | :---: | :--- | :--- | :--- |
 | `POST` | `/v1/auth/signup` | Public | `User` JSON fields | `201 Created`<br>`{"token": "JWT..."}` | Registers user in MongoDB, returns JWT token, fires `UserSignedUpEvent`. |
 | `GET` | `/v1/auth/user` | Protected | None | `200 OK`<br>`{"user": {...}}` | Retrieves current user profile from MongoDB using JWT `userId`. |
+| `PATCH` | `/v1/auth/user` | Protected | `UpdateUser` | `200 OK`<br>`{"message": "User updated successfully", "user": {...}}` | Partially updates the authenticated user profile (`name`, `age`, `bio`, `interest`). |
 
 ### 🟢 Presence Context (`/v1/presence`)
 | Method | Endpoint | Access | Request Body | Success Response | Description |

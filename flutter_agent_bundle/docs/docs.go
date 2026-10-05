@@ -87,6 +87,54 @@ const docTemplate = `{
                     "401": { "description": "Unauthorized / Invalid JWT Token" },
                     "500": { "description": "Internal server error" }
                 }
+            },
+            "patch": {
+                "security": [
+                    { "BearerAuth": [] }
+                ],
+                "description": "Partially updates the authenticated user profile using the JWT userId.",
+                "consumes": [
+                    "application/json"
+                ],
+                "produces": [
+                    "application/json"
+                ],
+                "tags": [
+                    "Authentication"
+                ],
+                "summary": "Update Authenticated User Profile",
+                "parameters": [
+                    {
+                        "description": "User profile fields to update",
+                        "name": "updateFields",
+                        "in": "body",
+                        "required": true,
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "name": { "type": "string", "example": "Jane Doe" },
+                                "age": { "type": "integer", "example": 24 },
+                                "bio": { "type": "string", "example": "Updated bio" },
+                                "interest": { "type": "array", "items": { "type": "string" }, "example": ["coding", "gaming"] }
+                            }
+                        }
+                    }
+                ],
+                "responses": {
+                    "200": {
+                        "description": "User updated successfully",
+                        "schema": {
+                            "type": "object",
+                            "properties": {
+                                "message": { "type": "string", "example": "User updated successfully" },
+                                "user": { "type": "object" }
+                            }
+                        }
+                    },
+                    "400": { "description": "Invalid JSON / No fields provided" },
+                    "401": { "description": "Unauthorized / Invalid JWT Token" },
+                    "500": { "description": "Internal server error" }
+                }
             }
         },
         "/v1/presence": {

@@ -117,6 +117,40 @@ All protected endpoints require the HTTP header:
   }
   ```
 
+#### 3. Update User Profile
+- **Method:** `PATCH`
+- **Path:** `/v1/auth/user`
+- **Access:** Protected (JWT required)
+- **Request Body Payload:**
+  ```json
+  {
+    "name": "Jane Smith",
+    "age": 24,
+    "bio": "Updated bio",
+    "interest": ["coding", "gaming", "music"]
+  }
+  ```
+- **Behavior:** Updates only the provided fields. `name`, `age`, `bio`, and `interest` are supported.
+- **Response `200 OK`:**
+  ```json
+  {
+    "message": "User updated successfully",
+    "user": {
+      "user_id": "66fa54122b11d8c11e74a812",
+      "name": "Jane Smith",
+      "age": 24,
+      "bio": "Updated bio",
+      "interest": ["coding", "gaming", "music"]
+    }
+  }
+  ```
+- **Response `400 Bad Request`:**
+  ```json
+  {
+    "error": "Invalid request body"
+  }
+  ```
+
 ---
 
 ### Presence Subsystem (`/v1/presence`)

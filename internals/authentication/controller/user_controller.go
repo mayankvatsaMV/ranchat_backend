@@ -66,9 +66,57 @@ func (u *UserController) GetUser(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, user)
 }
 
-// func (u *UserController) UpdateUser(ctx *gin.Context) {
-// 	userId,exists:=ctx.Get("userId")
-// 	if !exists{
+func (u *UserController) UpdateUser(ctx *gin.Context) {
+	// Get authenticated user ID from JWT middleware
+	userID, exists := ctx.Get("userId")
+	if !exists {
+		ctx.JSON(http.StatusUnauthorized, gin.H{
+			"error": "Unauthorized",
+		})
+		return
+	}
 
-// 	}
-// }
+	idStr, ok := userID.(string)
+	if !ok || idStr == "" {
+		ctx.JSON(http.StatusUnauthorized, gin.H{
+			"error": "Invalid user identity",
+		})
+		return
+	}
+
+	// Parse partial update body
+	var updates map[string]any
+
+	if err := ctx.ShouldBindJSON(&updates); err != nil {
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"error": "Invalid request body",
+		})
+		return
+	}
+
+	if len(updates) == 0 {
+		ctx.JSON(http.StatusBadRequest, gin.H{
+			"error": "No fields provided for update",
+		})
+		return
+	}
+
+	// Update user
+	user, errResp, err := u.Service.UpdateUser(
+		ctx,
+		updates,
+		idStr,
+	)
+
+	if err != nil {
+		ctx.JSON(errResp.StatusCode, gin.H{
+			"error": errResp.Message,
+		})
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"message": "User updated successfully",
+		"user":    user,
+	})
+}
