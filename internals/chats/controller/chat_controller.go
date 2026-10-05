@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"log"
 	"net/http"
 	"strconv"
 
@@ -67,10 +68,13 @@ func (cc *ChatController) SendMessage(c *gin.Context) {
 
 	// Push real-time event to receiver via WebSocket if online
 	if cc.wsHub != nil {
-		cc.wsHub.SendToUser(req.ReceiverID, gin.H{
+		delivered := cc.wsHub.SendToUser(req.ReceiverID, gin.H{
 			"event": "new_message",
 			"data":  message,
 		})
+		if !delivered {
+			log.Printf("websocket message push not delivered receiver_id=%s", req.ReceiverID)
+		}
 	}
 
 	c.JSON(http.StatusCreated, gin.H{

@@ -21,33 +21,34 @@ func NewWebSocketHub() *WebSocketHub {
 func (h *WebSocketHub) Register(userID string, conn *websocket.Conn) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
+	if previous, exists := h.connections[userID]; exists && previous != conn {
+		_ = previous.Close()
+	}
 	h.connections[userID] = conn
 }
 
 // Unregister on disconnect
-func (h *WebSocketHub) Unregister(userID string) {
+func (h *WebSocketHub) Unregister(userID string, conn *websocket.Conn) {
 	h.mu.Lock()
 	defer h.mu.Unlock()
-	if conn, exists := h.connections[userID]; exists {
-		conn.Close()
+	if current, exists := h.connections[userID]; exists && current == conn {
+		_ = current.Close()
 		delete(h.connections, userID)
 	}
 }
 
 // Direct message push to a specific user
 func (h *WebSocketHub) SendToUser(userID string, payload interface{}) bool {
-	h.mu.RLock()
-	conn, exists := h.connections[userID]
-	h.mu.RUnlock()
+	h.mu.Lock()
+	defer h.mu.Unlock()
 
+	conn, exists := h.connections[userID]
 	if !exists {
 		return false // Target user is offline
 	}
 
-	h.mu.Lock()
-	defer h.mu.Unlock()
 	if err := conn.WriteJSON(payload); err != nil {
-		conn.Close()
+		_ = conn.Close()
 		delete(h.connections, userID)
 		return false
 	}

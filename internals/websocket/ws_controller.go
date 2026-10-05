@@ -24,7 +24,11 @@ func (h *WSHandler) ConnectWS(ctx *gin.Context) {
 		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "unauthorized"})
 		return
 	}
-	userID := userIDValue.(string)
+	userID, ok := userIDValue.(string)
+	if !ok || userID == "" {
+		ctx.JSON(http.StatusUnauthorized, gin.H{"error": "invalid user id"})
+		return
+	}
 
 	conn, err := upgrader.Upgrade(ctx.Writer, ctx.Request, nil)
 	if err != nil {
@@ -36,7 +40,7 @@ func (h *WSHandler) ConnectWS(ctx *gin.Context) {
 
 	// Keep connection alive & listen for disconnects
 	go func() {
-		defer h.Hub.Unregister(userID)
+		defer h.Hub.Unregister(userID, conn)
 		for {
 			_, _, err := conn.ReadMessage()
 			if err != nil {
